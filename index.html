@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location Sharing - Consent Required</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 900px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+        }
+
+        .info-box h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .info-box p {
+            color: #555;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+        }
+
+        .warning-box h3 {
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .warning-box ul {
+            margin-left: 20px;
+            color: #856404;
+        }
+
+        .warning-box li {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #status {
+            text-align: center;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-weight: 600;
+            display: none;
+        }
+
+        #status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        #status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        #status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .location-details {
+            display: none;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+
+        .location-details h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            background: white;
+            margin: 8px 0;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .detail-value {
+            color: #667eea;
+            font-family: 'Courier New', monospace;
+        }
+
+        #map {
+            height: 400px;
+            width: 100%;
+            border-radius: 12px;
+            margin-top: 20px;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .privacy-notice {
+            background: #e7f3ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+            border: 1px solid #b3d9ff;
+        }
+
+        .privacy-notice h4 {
+            color: #004085;
+            margin-bottom: 10px;
+        }
+
+        .privacy-notice p {
+            color: #004085;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+            border-top: 1px solid #dee2e6;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .btn {
+                padding: 12px 30px;
+                font-size: 16px;
+            }
+
+            #map {
+                height: 300px;
+            }
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔒 Consent-Based Location Sharing</h1>
+            <p>Cybersecurity Mini Project - Educational Demonstration</p>
+        </div>
+
+        <div class="content">
+            <div class="info-box">
+                <h3>📍 About This Project</h3>
+                <p>
+                    This is an educational demonstration of consent-based location tracking using the Browser Geolocation API. 
+                    Your location will ONLY be accessed if you explicitly grant permission through your browser's security dialog.
+                </p>
+            </div>
+
+            <div class="warning-box">
+                <h3>⚠️ Legal & Ethical Notice</h3>
+                <ul>
+                    <li>This project is completely LEGAL and ETHICAL</li>
+                    <li>Requires explicit user consent (you must click "Allow")</li>
+                    <li>Complies with IT Act 2000 and DPDP Act 2023</li>
+                    <li>For educational purposes only</li>
+                    <li>No data is stored on any server</li>
+                </ul>
+            </div>
+
+            <div class="button-container">
+                <button id="getLocationBtn" class="btn">📍 Share My Location</button>
+                <div class="spinner" id="spinner"></div>
+            </div>
+
+            <div id="status"></div>
+
+            <div class="location-details" id="locationDetails">
+                <h3>📊 Location Details Captured:</h3>
+                <div class="detail-item">
+                    <span class="detail-label">Latitude:</span>
+                    <span class="detail-value" id="latitude">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Longitude:</span>
+                    <span class="detail-value" id="longitude">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Accuracy:</span>
+                    <span class="detail-value" id="accuracy">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Timestamp:</span>
+                    <span class="detail-value" id="timestamp">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Altitude:</span>
+                    <span class="detail-value" id="altitude">-</span>
+                </div>
+            </div>
+
+            <div id="map"></div>
+
+            <div class="privacy-notice">
+                <h4>🔐 Privacy & Data Protection</h4>
+                <p>
+                    <strong>Your privacy is protected:</strong> This demonstration does not send your location data to any server. 
+                    All processing happens locally in your browser. Your location is only displayed on this page and is never stored 
+                    or transmitted. You can revoke location permission at any time through your browser settings.
+                </p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>
+                <strong>Educational Project</strong> | Cybersecurity Mini Project<br>
+                Technology Stack: HTML5, JavaScript, Geolocation API, OpenStreetMap (Leaflet.js)<br>
+                © 2024 | Compliant with Indian Cyber Laws
+            </p>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map;
+        let marker;
+
+        // Get DOM elements
+        const getLocationBtn = document.getElementById('getLocationBtn');
+        const status = document.getElementById('status');
+        const locationDetails = document.getElementById('locationDetails');
+        const mapDiv = document.getElementById('map');
+        const spinner = document.getElementById('spinner');
+
+        // Event listener for the button
+        getLocationBtn.addEventListener('click', getLocation);
+
+        function getLocation() {
+            // Check if Geolocation is supported
+            if (!navigator.geolocation) {
+                showStatus('Geolocation is not supported by your browser', 'error');
+                return;
+            }
+
+            // Show loading state
+            showStatus('Requesting location permission...', 'loading');
+            spinner.style.display = 'block';
+            getLocationBtn.disabled = true;
+
+            // Request location with high accuracy
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                showPosition,
+                showError,
+                options
+            );
+        }
+
+        function showPosition(position) {
+            // Hide spinner
+            spinner.style.display = 'none';
+            getLocationBtn.disabled = false;
+
+            // Extract coordinates
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+            const altitude = position.coords.altitude;
+            const timestamp = new Date(position.timestamp);
+
+            // Show success message
+            showStatus('✅ Location captured successfully!', 'success');
+
+            // Display location details
+            document.getElementById('latitude').textContent = latitude.toFixed(6);
+            document.getElementById('longitude').textContent = longitude.toFixed(6);
+            document.getElementById('accuracy').textContent = accuracy.toFixed(2) + ' meters';
+            document.getElementById('timestamp').textContent = timestamp.toLocaleString();
+            document.getElementById('altitude').textContent = altitude ? altitude.toFixed(2) + ' meters' : 'Not available';
+
+            locationDetails.style.display = 'block';
+
+            // Display map
+            displayMap(latitude, longitude, accuracy);
+
+            // Log to console (for demonstration)
+            console.log('Location Data Captured:');
+            console.log('Latitude:', latitude);
+            console.log('Longitude:', longitude);
+            console.log('Accuracy:', accuracy, 'meters');
+            console.log('Timestamp:', timestamp);
+
+            // Note: In a real application with backend, you would send data here
+            // Example: sendToServer(latitude, longitude, accuracy, timestamp);
+        }
+
+        function showError(error) {
+            spinner.style.display = 'none';
+            getLocationBtn.disabled = false;
+
+            let errorMessage = '';
+
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = '❌ Permission Denied: You denied the location request. Please allow location access to use this feature.';
+                    console.log('User denied location permission');
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = '❌ Location Unavailable: Location information is not available. Please check your device settings.';
+                    console.log('Location information unavailable');
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = '❌ Request Timeout: The request to get your location timed out. Please try again.';
+                    console.log('Location request timed out');
+                    break;
+                case error.UNKNOWN_ERROR:
+                    errorMessage = '❌ Unknown Error: An unknown error occurred. Please try again.';
+                    console.log('Unknown error occurred');
+                    break;
+            }
+
+            showStatus(errorMessage, 'error');
+        }
+
+        function displayMap(lat, lng, accuracy) {
+            mapDiv.style.display = 'block';
+
+            // Initialize map if not already initialized
+            if (!map) {
+                map = L.map('map').setView([lat, lng], 15);
+
+                // Add OpenStreetMap tiles
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 19
+                }).addTo(map);
+            } else {
+                // Update map view
+                map.setView([lat, lng], 15);
+            }
+
+            // Remove existing marker if any
+            if (marker) {
+                map.removeLayer(marker);
+            }
+
+            // Add new marker
+            marker = L.marker([lat, lng]).addTo(map);
+            marker.bindPopup(`
+                <b>Your Location</b><br>
+                Latitude: ${lat.toFixed(6)}<br>
+                Longitude: ${lng.toFixed(6)}<br>
+                Accuracy: ${accuracy.toFixed(2)}m
+            `).openPopup();
+
+            // Add accuracy circle
+            L.circle([lat, lng], {
+                color: '#667eea',
+                fillColor: '#667eea',
+                fillOpacity: 0.2,
+                radius: accuracy
+            }).addTo(map);
+        }
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = type;
+            status.style.display = 'block';
+        }
+
+        // Optional: Continuous tracking function (commented out by default)
+        /*
+        function watchLocation() {
+            if (navigator.geolocation) {
+                const watchId = navigator.geolocation.watchPosition(
+                    function(position) {
+                        showPosition(position);
+                        console.log('Location updated');
+                    },
+                    showError,
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    }
+                );
+                
+                // To stop watching: navigator.geolocation.clearWatch(watchId);
+            }
+        }
+        */
+
+        // Function to simulate sending data to server (for demonstration)
+        function sendToServer(lat, lng, accuracy, timestamp) {
+            // This is where you would send data to your backend
+            // Example using Fetch API:
+            /*
+            fetch('your-server-endpoint.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    latitude: lat,
+                    longitude: lng,
+                    accuracy: accuracy,
+                    timestamp: timestamp
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Data sent successfully:', data);
+            })
+            .catch(error => {
+                console.error('Error sending data:', error);
+            });
+            */
+            
+            console.log('Note: In production, data would be sent to server here');
+        }
+
+        // Log when page loads
+        console.log('Consent-Based Location Tracker loaded');
+        console.log('Geolocation API available:', 'geolocation' in navigator);
+    </script>
+</body>
+</html>
